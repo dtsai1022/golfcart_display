@@ -132,6 +132,44 @@ V2V Lab is a **visual concept only**. Real cart-to-cart transfer needs, at minim
 | `include/lv_conf.h` | LVGL colors, widgets, and font configuration |
 | `platformio.ini` | Reproducible board, framework, and dependency versions |
 
+## Editing the UI — where to look
+
+**Almost everything you see on screen is drawn in one file: [`src/dashboard_ui.cpp`](src/dashboard_ui.cpp)** (~480 lines, LVGL 8.3). The other files support it:
+
+| File | Role | Edit it when… |
+|---|---|---|
+| [`src/dashboard_ui.cpp`](src/dashboard_ui.cpp) | Builds and updates all three pages | you want to change layout, colors, text, widgets, or animations |
+| [`include/lv_conf.h`](include/lv_conf.h) | LVGL config: which fonts/widgets are enabled | you need a different font size or an LVGL widget that's currently off |
+| [`src/telemetry.h`](src/telemetry.h) / [`src/telemetry.cpp`](src/telemetry.cpp) | The data shown (currently simulated) | you want different values or live sensor data — **not** the visuals |
+| [`src/main.cpp`](src/main.cpp) | Display/touch hardware bring-up and the loop | rarely, for UI work — only for display/touch/buffer behavior |
+
+### Inside `dashboard_ui.cpp`
+
+| What you want to change | Where to look |
+|---|---|
+| **Colors** (background, panels, accents) | The palette constants at the top: `BG`, `PANEL`, `BORDER`, `TEXT`, `MUTED`, `GREEN`, `CYAN`, `YELLOW`, `ORANGE` (lines ~13–22) |
+| **Page geometry** (where the content/nav sit) | `PAGE_Y`, `PAGE_H`, `NAV_Y` constants (lines ~9–11) |
+| **Overview page** (speed, range, battery, energy-flow dots) | `build_overview()` (~line 209) |
+| **Systems page** (SOC arc, motor, solar, detail cards) | `build_systems()` (~line 265) |
+| **V2V Lab page** (cart A/B, direction, swap button) | `build_v2v()` (~line 330) |
+| **Header / bottom navigation buttons** | `build_header()` (~175), `build_nav()` (~189) |
+| **Reusable widgets** (cards, labels, bars, lines, dots) | helpers `make_obj`, `label`, `bar`, `line`, `flow_dot`, `make_metric_card` (~72–148) |
+| **The live numbers shown** (how each value is formatted/written) | `dashboard_ui_update()` (~line 416) |
+| **Page switching / touch buttons** | `show_page()` (~150), `nav_event()` (~167), `swap_v2v_event()` (~171) |
+| **Moving/energy-flow animation** | `update_flow()` (~line 368) |
+
+Line numbers are approximate and shift as you edit — search for the function name to jump straight there.
+
+### Common edits, step by step
+
+- **Recolor the theme:** change the hex values in the palette constants at the top of `dashboard_ui.cpp`. They're used everywhere, so one change re-themes the whole UI.
+- **Move or resize a card:** in the relevant `build_*()` function, cards are placed with `make_obj(parent, x, y, w, h, …)` and `make_metric_card(page, y, …)` — edit the pixel coordinates (screen is 800×480).
+- **Change a label's wording or font:** find the `label(parent, "TEXT", x, y, &lv_font_montserrat_XX, color)` call. To use a font size that isn't enabled yet, turn it on in `include/lv_conf.h` (e.g. `LV_FONT_MONTSERRAT_28`).
+- **Show a different number:** the value comes from `TelemetryData` (see `telemetry.h`); `dashboard_ui_update()` writes it into a label with `text_value()` / `int_value()` / `lv_label_set_text()`.
+- **Add a fourth page:** add a `pages[]` slot, write a `build_<page>()`, call it in `dashboard_ui_init()`, and add a name to the `names[]` array in `build_nav()`.
+
+After any change: `pio run -e crowpanel-7 -t upload` (or `UPLOAD_FIRMWARE.cmd`) to see it on the display.
+
 ## References
 
 - [Elecrow CrowPanel 7.0" official hardware repository](https://github.com/Elecrow-RD/CrowPanel-7.0-HMI-ESP32-Display-800x480)
