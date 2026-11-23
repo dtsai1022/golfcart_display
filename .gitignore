@@ -1,0 +1,17 @@
+# PlatformIO build artifacts and local tooling (regenerated on first build)
+.pio/
+.venv/
+
+# Local firmware backups / flash readbacks (kept out of version control)
+backups/
+
+# Python / editor / OS noise
+__pycache__/
+*.pyc
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Old handoff snapshots live outside the repo
+*.zip
